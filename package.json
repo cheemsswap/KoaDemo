@@ -2,8 +2,9 @@
   "name": "koademo",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./src/main.js",
   "scripts": {
+    "dev": "nodemon ./src/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,5 +17,10 @@
   "bugs": {
     "url": "https://github.com/cheemsswap/KoaDemo/issues"
   },
-  "homepage": "https://github.com/cheemsswap/KoaDemo#readme"
+  "homepage": "https://github.com/cheemsswap/KoaDemo#readme",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "koa": "^2.13.4",
+    "koa-router": "^10.1.1"
+  }
 }
