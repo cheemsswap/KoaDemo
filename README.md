@@ -368,5 +368,118 @@ MOMGO_PWD=123456
     module.exports = new UserController()
 ```
 
+## 13、增加Swagger模块
+
+### 13.1、安装swagger-jsdoc和koa2-swagger-ui
+
+```bash
+npm install koa2-swagger-ui swagger-jsdoc --save
+```
+
+### 13.2、新建swagger.js
+
+```javascript
+---src
+	---util
+		---swagger.js
+    const path = require('path')
+    const router = require('koa-router')() //引入路由函数
+    const swaggerJSDoc = require('swagger-jsdoc')
+    const swaggerDefinition = {
+        //swagger-ui显示的基本信息，如标题、版本、描述
+        info: {
+            title: '接口文档',
+            version: '1.0.0',
+            description: 'API文档',
+        },
+        schemes: ['http'],
+    }
+    const options = {
+        swaggerDefinition,
+        apis: [path.join(__dirname, '../router/*.js')],
+    };
+    const swaggerSpec = swaggerJSDoc(options)
+    // 通过路由获取生成的注解文件
+    router.get('/swagger.json', async function (ctx) {
+        ctx.set('Content-Type', 'application/json');
+        ctx.body = swaggerSpec;
+    })
+    module.exports = router
+```
+
+### 13.3、app注册
+
+```javascript
+---src
+	---app
+		---index.js
+    const { koaSwagger } = require('koa2-swagger-ui')
+    const swagger = require('../util/swagger')
+
+    app.use(swagger.routes(), swagger.allowedMethods())
+    app.use(koaSwagger({
+        routePrefix: '/swagger',
+        swaggerOptions: {
+            url: '/swagger.json'
+        }
+    }))
+```
+
+### 13.4、第一次使用 为 /users/register 接口添加swagger配置
+
+```javascript
+---src
+	---router
+		---user.router.js
+/**
+ * @swagger
+ * /users/register: # 接口地址
+ *   post: # 请求体
+ *     description: 用户注册 # 接口信息
+ *     tags: [用户模块] # 模块名称
+ *     produces: 
+ *       - application/x-www-form-urlencoded # 响应内容类型
+ *     parameters: # 请求参数
+ *       - name: phone
+ *         description: 手机号码
+ *         in: formData 
+ *         required: true
+ *         type: string
+ *       - name: username
+ *         description: 用户名
+ *         in: formData
+ *         required: true
+ *         type: string 
+ *       - name: password
+ *         description: 密码
+ *         in: formData
+ *         required: true
+ *         type: string 
+ *       - name: sex
+ *         description: 性别
+ *         in: formData
+ *         type: string
+ *         default: 保密
+ *         enum: ["男", "女", "保密"]
+ *     responses:
+ *       '200':
+ *         description: Ok
+ *         schema: # 返回体说明
+ *           type: 'object'
+ *           properties:
+ *             code:
+ *               type: 'number'
+ *             message:
+ *               type: 'string'
+ *               description: 注册成功
+ *             result:
+ *               type: 'object'
+ *               description: 返回注册成功的参数
+ *       '403':
+ *         description: 被阻止的
+ */
+UserRouter.post('/register', regitser)
+```
+
 
 
