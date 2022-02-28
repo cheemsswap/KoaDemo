@@ -247,7 +247,8 @@ MOMGO_PWD=123456
         MOMGO_PWD,
         MOMGO_DB,
     } = require("../config/config.default")
-    const mongoose = require('mongoose')	 mongoose.connect(`mongodb://${MOMGO_USER}:${MOMGO_PWD}@${MOMGO_HOST}:${MOMGO_PORT}/${MOMGO_DB}`, (err) => {
+    const mongoose = require('mongoose')	 
+    mongoose.connect(`mongodb://${MOMGO_USER}:${MOMGO_PWD}@${MOMGO_HOST}:${MOMGO_PORT}/${MOMGO_DB}`, (err) => {
         if (err) {
             setInterval(() => {
                 console.log("数据库连接失败,请检查数据库配置");
