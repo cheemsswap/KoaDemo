@@ -1,13 +1,14 @@
 const mongoose = require('./db')
-const moment = require('../util/moment')
-const validator = require('../util/validator')
+const moment = require('moment')
+const validator = require('validator')
+const { COUNTRY } = require('../config/config.default')
 const UserSchema = mongoose.Schema({
     phone: {       //手机号码
         type: String,
         required: true, //必选
         unique: true,  //唯一索引
         validate: function (phone) {
-            return validator.isMobilePhone(phone, 'zh-CN')
+            return validator.isMobilePhone(phone, COUNTRY)
         }
     },
     username: {     //用户名

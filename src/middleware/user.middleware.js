@@ -1,74 +1,75 @@
-const { SelectUserPhoneIsBeing } = require('../server/user.serve')
-const validator = require('../util/validator')
+const { SelectUserPhoneInfo } = require('../server/user.serve')
+const validator = require('validator')
+const bcrypt = require('bcryptjs');
+const { COUNTRY } = require('../config/config.default')
 const {
     ErrorDefaultArguments,
     ErrorIsMobilePhone,
     ErrorIsSex,
     ErrorMobilePhoneIsRegitsered,
+    ErrorMobilePhoneIsNotRegitsered,
     ErrorServer
-} = require('../consitant/errHandler')
+} = require('../constant/errHandler')
 class UserMiddleWare {
     async RegisterFormValidator(ctx, next) {
         //注册表单验证
         const { phone, username, password, sex } = ctx.request.body
         const sexList = ["男", "女", "保密", undefined]
-        if (phone == undefined || username == undefined || password == undefined) {
-            //参数缺少
-            // ctx.status = 403
-            // ctx.body = {
-            //     code: 403,
-            //     message: "参数缺少",
-            //     result: ""
-            // }
+        if (phone == undefined || username == undefined || username.trim() == '' || password == undefined) {
             ctx.app.emit("error", ErrorDefaultArguments, ctx)
         }
-        else if (!validator.isMobilePhone(phone, "zh-CN")) {
-            // ctx.status = 403
-            // ctx.body = {
-            //     code: 403,
-            //     message: "手机号码不正确",
-            //     result: ""
-            // }
+        else if (!validator.isMobilePhone(phone, COUNTRY)) {
             ctx.app.emit("error", ErrorIsMobilePhone, ctx)
         }
         else if (!sexList.includes(sex)) {
-            //性别参数有误
-            // ctx.status = 403
-            // ctx.body = {
-            //     code: 403,
-            //     message: "性别参数有误",
-            //     result: ""
-            // }
             ctx.app.emit("error", ErrorIsSex, ctx)
         }
         else {
-            //判断用户是否注册
-            const req = await SelectUserPhoneIsBeing({ phone })
-            if (req.code == 200) {
-                if (req.result) {
-                    await next()
-                }
-                else {
-                    // ctx.status = 403
-                    // ctx.body = {
-                    //     code: 403,
-                    //     message: "手机号已被注册",
-                    //     result: ""
-                    // }
+            try {
+                const req = await SelectUserPhoneInfo({ phone })
+                if (req) {
+                    //数据存在该号码的信息
                     ctx.app.emit("error", ErrorMobilePhoneIsRegitsered, ctx)
                 }
-            }
-            else {
-                // ctx.status = 500
-                // ctx.body = {
-                //     code: 500,
-                //     message: "服务器内部错误",
-                //     result: ""
-                // }
+                else {
+                    //数据不存在该号码的信息 继续注册
+                    await next()
+                }
+            } catch (err) {
                 ctx.app.emit("error", ErrorServer, ctx)
             }
         }
-
+    }
+    async EncryptionPassword(ctx, next) {
+        //密码加密
+        const { password } = ctx.request.body
+        const salt = bcrypt.genSaltSync(10);
+        const hash = bcrypt.hashSync(password, salt);
+        ctx.request.body.password = hash
+        await next()
+    }
+    async LoginFormValidator(ctx, next) {
+        const { phone, password } = ctx.request.body
+        if (phone == undefined || password == undefined) {
+            ctx.app.emit("error", ErrorDefaultArguments, ctx)
+        } else if (!validator.isMobilePhone(phone, "zh-CN")) {
+            ctx.app.emit("error", ErrorIsMobilePhone, ctx)
+        }
+        else {
+            try {
+                const req = await SelectUserPhoneInfo({ phone })
+                if (req) {
+                    //数据存在该号码的信息
+                    await next()
+                }
+                else {
+                    //数据不存在该号码的信息 登录返回-用户不存在
+                    ctx.app.emit("error", ErrorMobilePhoneIsNotRegitsered, ctx)
+                }
+            } catch (err) {
+                ctx.app.emit("error", ErrorServer, ctx)
+            }
+        }
     }
 }
 

@@ -1,8 +1,13 @@
 const Router = require('koa-router')
-
-
-const { regitser, login } = require('../controller/user.controller')
-const { RegisterFormValidator } = require('../middleware/user.middleware')
+const {
+    regitser,
+    login
+} = require('../controller/user.controller')
+const {
+    RegisterFormValidator,
+    EncryptionPassword,
+    LoginFormValidator
+} = require('../middleware/user.middleware')
 const UserRouter = new Router({ prefix: '/users' })
 
 /**
@@ -51,8 +56,10 @@ const UserRouter = new Router({ prefix: '/users' })
  *               description: 返回注册成功的参数
  *       '403':
  *         description: 被阻止的
+ *       '500':
+ *         description: 服务器内部错误
  */
-UserRouter.post('/register', RegisterFormValidator, regitser)
+UserRouter.post('/register', RegisterFormValidator, EncryptionPassword, regitser)
 
 /**
  * @swagger
@@ -89,7 +96,9 @@ UserRouter.post('/register', RegisterFormValidator, regitser)
  *               description: 登录返回的Token
  *       '403':
  *         description: 被阻止的
+ *       '500':
+ *         description: 服务器内部错误
  */
-UserRouter.post('/login', login)
+UserRouter.post('/login', LoginFormValidator, login)
 
 module.exports = UserRouter

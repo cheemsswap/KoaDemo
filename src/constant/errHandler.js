@@ -28,5 +28,17 @@ module.exports = {
         code: 403,
         message: "手机号已被注册",
         result: ""
-    }
+    },
+    //手机号码未注册
+    ErrorMobilePhoneIsNotRegitsered: {
+        code: 403,
+        message: "手机号未注册",
+        result: ""
+    },
+    //密码错误
+    ErrorPassword: {
+        code: 403,
+        message: "密码错误",
+        result: ""
+    },
 }

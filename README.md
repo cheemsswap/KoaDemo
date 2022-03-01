@@ -481,7 +481,7 @@ npm install koa2-swagger-ui swagger-jsdoc --save
 UserRouter.post('/register', regitser)
 ```
 
-## 14、增加参数验证器模块
+## 14、增加参数验证器 自定义中间件
 
 ![时序图1](时序图1.png)
 
@@ -619,4 +619,83 @@ app.on("error", (err, ctx) => {
     ctx.body = err
 })
 ```
+
+## 16、优化代码 14-15部分的代码  并 完成 登录验证
+
+### 16.1 添加登录表单验证 
+
+```javascript
+---src
+	---middleware
+		---user.middleware.js
+async LoginFormValidator(ctx, next) {
+    const { phone, password } = ctx.request.body
+    if (phone == undefined || password == undefined) {
+        ctx.app.emit("error", ErrorDefaultArguments, ctx)
+    } else if (!validator.isMobilePhone(phone, "zh-CN")) {
+        ctx.app.emit("error", ErrorIsMobilePhone, ctx)
+    }
+    else {
+        try {
+            const req = await SelectUserPhoneInfo({ phone })
+            if (req) {
+                //数据存在该号码的信息
+                await next()
+            }
+            else {
+                //数据不存在该号码的信息 登录返回-用户不存在
+                ctx.app.emit("error", ErrorMobilePhoneIsNotRegitsered, ctx)
+            }
+        } catch (err) {
+            ctx.app.emit("error", ErrorServer, ctx)
+        }
+    }
+}
+```
+
+### 16.2、登录验证
+
+```javascript
+---src
+	---controller
+		---user.controller.js
+async login(ctx, next) {
+    try {
+        const { password } = ctx.request.body
+        const res = await SelectUserPhoneInfo(ctx.request.body)
+        //验证密码
+        if (res) {
+            if (bcrypt.compareSync(password, res.password)) {
+                ctx.status = 200
+                ctx.body = {
+                    code: 200,
+                    message: "登录成功",
+                    result: ""
+                }
+            }
+            else {
+                ctx.app.emit("error", ErrorPassword, ctx)
+            }
+        }
+        else {
+            ctx.app.emit("error", ErrorMobilePhoneIsNotRegitsered, ctx)
+        }
+    } catch (err) {
+        ctx.app.emit("error", ErrorServer, ctx)
+    }
+}
+```
+
+### 16.3 、为登录路由添加中间件
+
+```javascript
+---src
+	---router
+		---user.route.js
+UserRouter.post('/login', LoginFormValidator, login)
+```
+
+
+
+
 
