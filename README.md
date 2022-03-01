@@ -481,5 +481,142 @@ npm install koa2-swagger-ui swagger-jsdoc --save
 UserRouter.post('/register', regitser)
 ```
 
+## 14、增加参数验证器模块
 
+![时序图1](时序图1.png)
+
+```javascript
+---src
+	---middleware
+		---user.middleware.js
+const { SelectUserPhoneIsBeing } = require('../server/user.serve')
+const validator = require('../util/validator')
+const {
+    ErrorDefaultArguments,
+    ErrorIsMobilePhone,
+    ErrorIsSex,
+    ErrorMobilePhoneIsRegitsered,
+    ErrorServer
+} = require('../consitant/errHandler')
+class UserMiddleWare {
+    async RegisterFormValidator(ctx, next) {
+        //注册表单验证
+        const { phone, username, password, sex } = ctx.request.body
+        const sexList = ["男", "女", "保密", undefined]
+        if (phone == undefined || username == undefined || password == undefined) {
+            //参数缺少
+            // ctx.status = 403
+            // ctx.body = {
+            //     code: 403,
+            //     message: "参数缺少",
+            //     result: ""
+            // }
+            ctx.app.emit("error", ErrorDefaultArguments, ctx)
+        }
+        else if (!validator.isMobilePhone(phone, "zh-CN")) {
+            // ctx.status = 403
+            // ctx.body = {
+            //     code: 403,
+            //     message: "手机号码不正确",
+            //     result: ""
+            // }
+            ctx.app.emit("error", ErrorIsMobilePhone, ctx)
+        }
+        else if (!sexList.includes(sex)) {
+            //性别参数有误
+            // ctx.status = 403
+            // ctx.body = {
+            //     code: 403,
+            //     message: "性别参数有误",
+            //     result: ""
+            // }
+            ctx.app.emit("error", ErrorIsSex, ctx)
+        }
+        else {
+            //判断用户是否注册
+            const req = await SelectUserPhoneIsBeing({ phone })
+            if (req.code == 200) {
+                if (req.result) {
+                    await next()
+                }
+                else {
+                    // ctx.status = 403
+                    // ctx.body = {
+                    //     code: 403,
+                    //     message: "手机号已被注册",
+                    //     result: ""
+                    // }
+                    ctx.app.emit("error", ErrorMobilePhoneIsRegitsered, ctx)
+                }
+            }
+            else {
+                // ctx.status = 500
+                // ctx.body = {
+                //     code: 500,
+                //     message: "服务器内部错误",
+                //     result: ""
+                // }
+                ctx.app.emit("error", ErrorServer, ctx)
+            }
+        }
+
+    }
+}
+module.exports = new UserMiddleWare()
+```
+
+## 15、封装验证失败模块
+
+### 15.1、请求失败的参数列表 errHandler.js
+
+```javascript
+---src
+	---consitant
+		---errHandler.js
+module.exports = {
+    //默认参数错误
+    ErrorDefaultArguments: {
+        code: 403,
+        message: "参数缺少",
+        result: ""
+    },
+    //服务器内部错误
+    ErrorServer: {
+        code: 500,
+        message: "服务器内部错误",
+        result: ""
+    },
+    //错误的移动电话
+    ErrorIsMobilePhone: {
+        code: 403,
+        message: "手机号码不正确",
+        result: ""
+    },
+    //错误的性别
+    ErrorIsSex: {
+        code: 403,
+        message: "性别参数有误",
+        result: ""
+    },
+    //手机号码已被注册
+    ErrorMobilePhoneIsRegitsered: {
+        code: 403,
+        message: "手机号已被注册",
+        result: ""
+    }
+}
+```
+
+### 15.2、app设置全局错误处理
+
+```javascript
+---src
+	---app
+		---index.js
+//错误处理
+app.on("error", (err, ctx) => {
+    ctx.status = parseInt(ctx.code) || 500
+    ctx.body = err
+})
+```
 

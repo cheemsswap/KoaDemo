@@ -16,4 +16,10 @@ app.use(koaSwagger({
     }
 }))
 
+//错误处理
+app.on("error", (err, ctx) => {
+    ctx.status = parseInt(ctx.code) || 500
+    ctx.body = err
+})
+
 module.exports = app

@@ -2,6 +2,7 @@ const Router = require('koa-router')
 
 
 const { regitser, login } = require('../controller/user.controller')
+const { RegisterFormValidator } = require('../middleware/user.middleware')
 const UserRouter = new Router({ prefix: '/users' })
 
 /**
@@ -51,8 +52,44 @@ const UserRouter = new Router({ prefix: '/users' })
  *       '403':
  *         description: 被阻止的
  */
-UserRouter.post('/register', regitser)
+UserRouter.post('/register', RegisterFormValidator, regitser)
 
+/**
+ * @swagger
+ * /users/login: # 接口地址
+ *   post: # 请求体
+ *     description: 用户登录 # 接口信息
+ *     tags: [用户模块] # 模块名称
+ *     produces: 
+ *       - application/x-www-form-urlencoded # 响应内容类型
+ *     parameters: # 请求参数
+ *       - name: phone
+ *         description: 手机号码
+ *         in: formData 
+ *         required: true
+ *         type: string
+ *       - name: password
+ *         description: 密码
+ *         in: formData
+ *         required: true
+ *         type: string 
+ *     responses:
+ *       '200':
+ *         description: Ok
+ *         schema: # 返回体说明
+ *           type: 'object'
+ *           properties:
+ *             code:
+ *               type: 'number'
+ *             message:
+ *               type: 'string'
+ *               description: 登录成功
+ *             result:
+ *               type: 'object'
+ *               description: 登录返回的Token
+ *       '403':
+ *         description: 被阻止的
+ */
 UserRouter.post('/login', login)
 
 module.exports = UserRouter

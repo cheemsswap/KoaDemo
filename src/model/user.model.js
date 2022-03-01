@@ -1,11 +1,14 @@
 const mongoose = require('./db')
 const moment = require('../util/moment')
+const validator = require('../util/validator')
 const UserSchema = mongoose.Schema({
     phone: {       //手机号码
         type: String,
         required: true, //必选
         unique: true,  //唯一索引
-        match: /^\d{11}$/   //11位
+        validate: function (phone) {
+            return validator.isMobilePhone(phone, 'zh-CN')
+        }
     },
     username: {     //用户名
         type: String,
