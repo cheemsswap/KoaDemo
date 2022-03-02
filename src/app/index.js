@@ -3,11 +3,13 @@ const koaBody = require('koa-body');
 const { koaSwagger } = require('koa2-swagger-ui')
 const swagger = require('../util/swagger')
 const app = new Koa();
-
-const UserRouter = require('../router/user.route')
-app.use(koaBody());
-app.use(UserRouter.routes())
-
+const router = require('../router')
+app.use(koaBody({
+    multipart: true,
+}));
+//路由
+app.use(router.routes())
+//swagger
 app.use(swagger.routes(), swagger.allowedMethods())
 app.use(koaSwagger({
     routePrefix: '/swagger',
@@ -15,7 +17,11 @@ app.use(koaSwagger({
         url: '/swagger.json'
     }
 }))
-
+//处理上面没有处理的请求
+app.use(async (ctx, next) => {
+    ctx.status = 404
+    ctx.body = "404"
+})
 //错误处理
 app.on("error", (err, ctx) => {
     ctx.status = parseInt(ctx.code) || 500

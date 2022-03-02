@@ -59,4 +59,16 @@ module.exports = {
         message: "修改失败,新密码与旧密码相同",
         result: ""
     },
+    //文件格式不正确
+    ErrorFileFormat: {
+        code: 403,
+        message: "文件格式不正确",
+        result: ""
+    },
+    //文件太大
+    ErrorFileLarge: {
+        code: 403,
+        message: "文件太大",
+        result: ""
+    }
 }

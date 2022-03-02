@@ -7,9 +7,9 @@ const {
 class AuthMiddleware {
     //验证token
     async VerificationToken(ctx, next) {
-        const { authorization } = ctx.request.header
-        const token = authorization.replace("Bearer ", "")
         try {
+            const { authorization } = ctx.request.header
+            const token = authorization.replace("Bearer ", "")
             const tokenInfo = jwt.verify(token, JWT_SECRET)
             const { _id, phone, password, is_del } = tokenInfo
             const req = await SelectUserInfo({ _id, phone, password, is_del })
