@@ -35,10 +35,28 @@ module.exports = {
         message: "手机号未注册",
         result: ""
     },
+    //手机号码处于删除状态
+    ErrorMobilePhoneIsDel: {
+        code: 403,
+        message: "手机号已停用",
+        result: ""
+    },
     //密码错误
     ErrorPassword: {
         code: 403,
         message: "密码错误",
+        result: ""
+    },
+    //token失效
+    ErrorToken: {
+        code: 403,
+        message: "登录状态已失效",
+        result: ""
+    },
+    //修改密码 新密码与旧密码相同
+    ErrorUpdateNewpasswordIsEqual: {
+        code: 403,
+        message: "修改失败,新密码与旧密码相同",
         result: ""
     },
 }

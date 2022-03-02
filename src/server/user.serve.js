@@ -11,10 +11,20 @@ class UserServer {
             })
         })
     }
-    //查询手机号码信息
-    SelectUserPhoneInfo({ phone }) {
+    //验证用户信息
+    SelectUserInfo(UserInfo) {
         return new Promise((request, reject) => {
-            UserModel.findOne({ phone }).then(data => {
+            UserModel.findOne(UserInfo).then(data => {
+                request(data)
+            }).catch(err => {
+                reject(err)
+            })
+        })
+    }
+    //修改用户信息
+    UpdateUserInfo(oldUserInfo, newUserInfo) {
+        return new Promise((request, reject) => {
+            UserModel.updateOne(oldUserInfo, newUserInfo).then(data => {
                 request(data)
             }).catch(err => {
                 reject(err)

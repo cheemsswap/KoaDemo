@@ -637,7 +637,7 @@ async LoginFormValidator(ctx, next) {
     }
     else {
         try {
-            const req = await SelectUserPhoneInfo({ phone })
+            const req = await SelectUserInfo({ phone })
             if (req) {
                 //数据存在该号码的信息
                 await next()
@@ -662,7 +662,7 @@ async LoginFormValidator(ctx, next) {
 async login(ctx, next) {
     try {
         const { password } = ctx.request.body
-        const res = await SelectUserPhoneInfo(ctx.request.body)
+        const res = await SelectUserInfo(ctx.request.body)
         //验证密码
         if (res) {
             if (bcrypt.compareSync(password, res.password)) {
@@ -693,6 +693,264 @@ async login(ctx, next) {
 	---router
 		---user.route.js
 UserRouter.post('/login', LoginFormValidator, login)
+```
+
+## 17、增加token分发
+
+### 17.1、安装jsonwebtoken
+
+```bash
+npm i jsonwebtoken
+```
+
+### 17.2、增加token的私钥和过期时间的配置
+
+```bash
+---.env
+
+JWT_SECRET=cheemsswap
+JWT_TIME = 1h
+```
+
+### 17.3、为登录控制器添加 token的分发
+
+```javascript
+const jwt = require('jsonwebtoken')
+const { JWT_SECRET, JWT_TIME } = require("../config/config.default")
+---src
+	---controller
+		---user.controller.js
+核心代码:
+    async login(ctx, next) {
+        try {
+            const { phone, password } = ctx.request.body
+            const res = await SelectUserInfo({ phone })
+            //验证密码
+            if (res) {
+                if (bcrypt.compareSync(password, res.password)) {
+                    //token payload 包含 _id+手机号码+密码+是否删除
+                    const { _id, phone, password, is_del } = res
+                    ctx.status = 200
+                    ctx.body = {
+                        code: 200,
+                        message: "登录成功",
+                        result: {
+                            //新增代码 分发token
+                            token: jwt.sign({ _id, phone, password, is_del }, JWT_SECRET, {
+                                expiresIn: JWT_TIME
+                            })
+                        }
+                    }
+                }
+                else {
+                    ctx.app.emit("error", ErrorPassword, ctx)
+                }
+            }
+            else {
+                ctx.app.emit("error", ErrorMobilePhoneIsNotRegitsered, ctx)
+            }
+        } catch (err) {
+            ctx.app.emit("error", ErrorServer, ctx)
+        }
+    }
+```
+
+## 18、完成修改密码的接口
+
+### 18.1、增加密码表单的简单验证中间件
+
+```javascript
+---src
+	---middleware
+		---user.middleware.js
+//简单修改密码验证中间件
+    async UpdateFormValidator(ctx, next) {
+        const { oldpassword, newpassword } = ctx.request.body
+        if (oldpassword == undefined || oldpassword.trim() == "" 
+            || newpassword == undefined || newpassword.trim() == "") {
+            ctx.app.emit("error", ErrorDefaultArguments, ctx)
+        } else if (oldpassword == newpassword) {
+            ctx.app.emit("error", ErrorUpdateNewpasswordIsEqual, ctx)
+        }
+        else {
+            await next()
+        }
+    }
+```
+
+### 18.2、增加验证token中间件
+
+```javascript
+---src
+	---middleware
+		---auth.middleware.js
+//1、获取token 并检测token是否有效
+//2、数据库查询tonken里面的参数是否正确
+//3、如果token有效 -》将查询数据存放到 ctx.state.tokenInfo里面
+const { SelectUserInfo } = require('../server/user.serve')
+const jwt = require('jsonwebtoken')
+const { JWT_SECRET } = require("../config/config.default")
+const {
+    ErrorToken
+} = require('../constant/errHandler')
+class AuthMiddleware {
+    //验证token
+    async VerificationToken(ctx, next) {
+        const { authorization } = ctx.request.header
+        const token = authorization.replace("Bearer ", "")
+        try {
+            const tokenInfo = jwt.verify(token, JWT_SECRET)
+            const { _id, phone, password, is_del } = tokenInfo
+            const req = await SelectUserInfo({ _id, phone, password, is_del })
+            if (req) {
+                ctx.state.tokenInfo = tokenInfo
+                await next()
+            }
+            else {
+                ctx.app.emit("error", ErrorToken, ctx)
+            }
+        } catch (error) {
+            //错误或者过期的token
+            ctx.app.emit("error", ErrorToken, ctx)
+        }
+    }
+}
+
+module.exports = new AuthMiddleware()
+```
+
+### 18.3、修改密码加密的中间件 为其newpassword也能做到加密操作
+
+```javascript
+---src
+	---middleware
+		---user.middleware.js
+    async EncryptionPassword(ctx, next) {
+        //密码加密
+        try {
+            //新增部分
+            const { password, newpassword } = ctx.request.body
+            if (password) {
+                const salt = bcrypt.genSaltSync(10);
+                const hash = bcrypt.hashSync(password, salt);
+                ctx.request.body.password = hash
+            }
+            
+            //新增部分
+            if (newpassword) {
+                const salt = bcrypt.genSaltSync(10);
+                const hash = bcrypt.hashSync(newpassword, salt);
+                ctx.request.body.newpassword = hash
+            }
+            await next()
+        } catch (err) {
+            ctx.app.emit("error", ErrorServer, ctx)
+        }
+    }
+```
+
+### 18.4、增加修改密码的server
+
+```javascript
+---src
+	---server
+		---user.serve.js
+    //修改用户信息
+    UpdateUserInfo(oldUserInfo, newUserInfo) {
+        return new Promise((request, reject) => {
+            UserModel.updateOne(oldUserInfo, newUserInfo).then(data => {
+                request(data)
+            }).catch(err => {
+                reject(err)
+            })
+        })
+    }
+```
+
+### 18.5、增加修改密码的控制器
+
+```javascript
+---src
+	---controller
+		---user.controller.js
+    async updatepassword(ctx, next) {
+        try {
+            const { password } = ctx.state.tokenInfo
+            const { oldpassword, newpassword } = ctx.request.body
+            if (bcrypt.compareSync(oldpassword, password)) {
+                const req = await UpdateUserInfo(ctx.state.tokenInfo, { password: newpassword })
+                if (req.acknowledged) {
+                    ctx.status = 200
+                    ctx.body = {
+                        code: 200,
+                        message: "修改成功",
+                        result: ""
+                    }
+                } else {
+                    ctx.app.emit("error", ErrorServer, ctx)
+                }
+            }
+            else {
+                ctx.app.emit("error", ErrorPassword, ctx)
+            }
+        } catch (err) {
+            ctx.app.emit("error", ErrorServer, ctx)
+        }
+    }
+```
+
+### 18.6、/users/updatepassword 路由的填充
+
+```javascript
+---src
+	---router
+		---user.route.js
+/**
+ * @swagger
+ * /users/updatepassword: # 接口地址
+ *   patch: # 请求体
+ *     description: 修改密码 # 接口信息
+ *     summary : 修改密码
+ *     tags: [用户模块] # 模块名称
+ *     produces: 
+ *       - application/x-www-form-urlencoded # 响应内容类型
+ *     parameters: # 请求参数
+ *       - name: Authorization
+ *         description: Authorization
+ *         in: header
+ *         required: true
+ *         type: string
+ *         default : 'Bearer '
+ *       - name: oldpassword
+ *         description: 旧密码
+ *         in: formData
+ *         required: true
+ *         type: string 
+ *       - name: newpassword
+ *         description: 新密码
+ *         in: formData
+ *         required: true
+ *         type: string 
+ *     responses:
+ *       '200':
+ *         description: Ok
+ *         schema: # 返回体说明
+ *           type: 'object'
+ *           properties:
+ *             code:
+ *               type: 'number'
+ *             message:
+ *               type: 'string'
+ *               description: 修改成功
+ *             result:
+ *               type: 'object'
+ *               description: 
+ *       '403':
+ *         description: 被阻止的
+ *       '500':
+ *         description: 服务器内部错误
+ */
+UserRouter.patch("/updatepassword", UpdateFormValidator, VerificationToken, EncryptionPassword, updatepassword)
 ```
 
 
