@@ -953,6 +953,175 @@ module.exports = new AuthMiddleware()
 UserRouter.patch("/updatepassword", UpdateFormValidator, VerificationToken, EncryptionPassword, updatepassword)
 ```
 
+## 19、优化 添加自动引入路由
+
+### 19.1、在router下创建index.js 让其可以自动引入其文件夹下所有的文件
+
+```javascript
+---src
+	---router
+		---index.js
+const fs = require('fs')
+const Router = require('koa-router')
+const router = new Router()
+fs.readdirSync(__dirname).forEach(fileName => {
+    if (fileName != 'index.js') {
+        router.use(require('./' + fileName).routes())
+    }
+})
+module.exports = router
+```
+
+### 19.2、修改app让其引入这个整合的路由
+
+```javascript
+const router = require('../router')
+app.use(router.routes())
+```
+
+## 20、增加上传之图片上传功能
+
+### 20.1、新建上传路由upload.route.js
+
+```javascript
+---src
+	---router
+		---upload.route.js
+const Router = require('koa-router')
+const UploadRouter = new Router({ prefix: '/upload' })
+const { VerificationToken } = require('../middleware/auth.middleware')
+const { UploadPICValidator } = require('../middleware/upload.middleware')
+const { uploadpic } = require('../controller/upload.controller')
+//图片上传
+/**
+ * @swagger
+ * /upload/pic: # 接口地址
+ *   post:
+ *     description: 图片上传 # 接口信息
+ *     summary : 图片上传
+ *     tags: [文件上传] # 模块名称
+ *     produces: 
+ *       - application/x-www-form-urlencoded # 响应内容类型
+ *     parameters: # 请求参数
+ *       - name: Authorization
+ *         description: Authorization
+ *         in: header
+ *         required: true
+ *         type: string
+ *         default : 'Bearer '
+ *       - name: file
+ *         description: 图片上传 默认2M大小
+ *         in: formData 
+ *         required: true
+ *         type: file
+ *     responses:
+ *       '200':
+ *         description: Ok
+ *         schema: # 返回体说明
+ *           type: 'object'
+ *           properties:
+ *             code:
+ *               type: 'number'
+ *             message:
+ *               type: 'string'
+ *               description: 上传成功
+ *             result:
+ *               type: 'object'
+ *               description: 上传成功的URL
+ *       '403':
+ *         description: 被阻止的
+ *       '500':
+ *         description: 服务器内部错误
+ */
+UploadRouter.post('/pic', UploadPICValidator, VerificationToken, uploadpic)
+module.exports = UploadRouter
+```
+
+### 20.2、为配置文件添加图片大小限制
+
+```bash
+UPLOAD_MAXSIZE=2097152
+```
+
+### 20.3、增加图片格式和大小的验证中间件 
+
+```javascript
+---src
+	---middleware
+		---upload.middleware.js
+//图片大小默认2M大小
+const { UPLOAD_MAXSIZE = 2097152 } = require('../config/config.default')
+const {
+    ErrorFileFormat,
+    ErrorFileLarge,
+    ErrorServer
+} = require('../constant/errHandler')
+class UploadMiddleWare {
+    async UploadPICValidator(ctx, next) {
+        //图片校验格式 和 大小
+        try {
+            const { type, size } = ctx.request.files.file
+            if (type === 'image/jpeg' ||
+                type === 'image/png' ||
+                type === 'image/gif') {
+                if (size <= UPLOAD_MAXSIZE) {
+                    ctx.state.fileInfo = ctx.request.files.file
+                    await next()
+                }
+                else {
+                    ctx.app.emit('error', ErrorFileLarge, ctx);
+                }
+            }
+            else
+                ctx.app.emit('error', ErrorFileFormat, ctx)
+        } catch (error) {
+            ctx.app.emit('error', ErrorServer, ctx)
+        }
+    }
+}
+module.exports = new UploadMiddleWare()
+```
+
+### 20.4、增加图片上传控制器
+
+```javascript
+const fs = require('fs')
+const PATH = require('path')
+const mkdirp = require('mkdirp')
+const moment = require('moment')
+const { ErrorServer } = require('../constant/errHandler')
+
+class UploadController {
+    async uploadpic(ctx, next) {
+        try {
+            const { path, name } = ctx.state.fileInfo
+            // 创建可读流
+            const reader = fs.createReadStream(path);
+            //生成文件名 并设置保存地址
+            const newFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + PATH.extname(name)
+            const day = moment().format("YYYY_MM_DD")
+            await mkdirp.sync(`./src/public/uploads/${day}`)
+            const uploadPath = PATH.join(__dirname, `../public/uploads/${day}/${newFilename}`)
+            //创建可写流
+            const upStream = fs.createWriteStream(uploadPath);
+            // 可读流通过管道写入可写流
+            reader.pipe(upStream);
+            ctx.status = 200;
+            ctx.body = {
+                code: 200,
+                message: "保存成功",
+                result: {
+                    url: `/public/uploads/${day}/${newFilename}`
+                }
+            }
+        } catch (error) {
+            ctx.app.emit('error', ErrorServer, ctx)
+        }
+    }
+}
+module.exports = new UploadController();
+```
+
 
 
 
