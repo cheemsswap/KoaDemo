@@ -19,7 +19,7 @@ MOMGO_HOST=127.0.0.1
 MOMGO_PORT=27017
 MOMGO_DB=demo
 MOMGO_USER=admin
-MOMGO_PWD=123456isMobilePhone
+MOMGO_PWD=123456
 #手机号码注册国家 具体要修改 查看 https://github.com/validatorjs/validator.js#validators 下的 isMobilePhone 参数
 COUNTRY=zh-CN
 #token私钥 
