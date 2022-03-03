@@ -9,9 +9,8 @@ class UploadMiddleWare {
         //图片校验格式 和 大小
         try {
             const { type, size } = ctx.request.files.file
-            if (type === 'image/jpeg' ||
-                type === 'image/png' ||
-                type === 'image/gif') {
+            const fileType = ['image/jpeg', 'image/png', 'image/gif']
+            if (fileType.includes(type)) {
                 if (size <= UPLOAD_MAXSIZE) {
                     ctx.state.fileInfo = ctx.request.files.file
                     await next()

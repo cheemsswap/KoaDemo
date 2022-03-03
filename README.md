@@ -1,3 +1,91 @@
+# 使用说明：
+
+```javascript
+使用步骤:
+npm update
+npm i
+npm run dev
+```
+
+### 配置文件.env   
+
+可配置运行端口号、mongodb数据库、注册手机号码的国家、Token私钥和过期时间、图片文件上传的大小
+
+```bash
+#app端口号
+APP_PORT=3000
+#mongodb数据库信息
+MOMGO_HOST=127.0.0.1
+MOMGO_PORT=27017
+MOMGO_DB=demo
+MOMGO_USER=admin
+MOMGO_PWD=123456isMobilePhone
+#手机号码注册国家 具体要修改 查看 https://github.com/validatorjs/validator.js#validators 下的 isMobilePhone 参数
+COUNTRY=zh-CN
+#token私钥 
+JWT_SECRET=cheemsswap
+#token过期时间  过期时间设置，可具体查看 https://github.com/auth0/node-jsonwebtoken#usage 
+JWT_TIME = 1h
+#上传图片大小 限制 单位字节
+UPLOAD_MAXSIZE=104857600
+```
+
+### Swagger页面(需要一定的网络 加载swagger-ui的cdn)
+
+```bash
+http://127.0.0.1:3000/swagger
+```
+
+![]()
+
+# 文件目录结构：
+
+```bash
+│  .env                                       #配置文件
+│  package-lock.json
+│  package.json
+│  README.md                                  #描述文件
+├─node_modules
+└─src
+    │  main.js							      #文件入口
+    │  
+    ├─app
+    │      index.js		
+    │       
+    ├─config                                  #读取配置文件并暴露供其他js文件使用
+    │      config.default.js          
+    │      
+    ├─constant                                #配置错误请求 静态json
+    │      errHandler.js		
+    │      
+    ├─controller                              #控制器 实现与server的业务逻辑  是路由的最后的中间件
+    │      upload.controller.js                  #上传保存
+    │      user.controller.js                    #用户注册 登录 修改密码
+    │      
+    ├─middleware							  #中间件 实现初步的验证校验操作  是路由的中间件部分
+    │      auth.middleware.js					#token验证中间件 ->校验token有效性
+    │      upload.middleware.js                 #上传验证中间件 ->校验文件格式大小
+    │      user.middleware.js                   #表单有效性校验
+    │      
+    ├─model                                   #mogodb数据库模型
+    │      db.js                             	#mogodb连接数据库
+    │      user.model.js                        #mogodb->users表的model
+    │      
+    ├─public							      #静态文件资源
+    │  └─uploads                                #上传文件的目录
+    │      └─2022_03_03
+    ├─router                                  #路由
+    │      index.js                             #路由入口 -> 实现当前目录下的路由的自动引入
+    │      upload.route.js                      #上传文件的路由
+    │      user.route.js                        #用户路由
+    │      
+    ├─server								  #数据库业务层
+    │      user.serve.js						#users表 增删改查 业务
+    │      
+    └─util									  #工具
+            swagger.js						    #swagger工具
+```
+
 # 开发步骤
 
 ## 1、安装 koa 框架
@@ -483,7 +571,7 @@ UserRouter.post('/register', regitser)
 
 ## 14、增加参数验证器 自定义中间件
 
-![时序图1](时序图1.png)
+![时序图1]()
 
 ```javascript
 ---src
@@ -1122,7 +1210,22 @@ class UploadController {
 module.exports = new UploadController();
 ```
 
+## 21、增加静态文件模块
 
+### 21.1、安装koa-static模块
 
+```bash
+npm i koa-static
+```
 
+### 21.2、注册使用这个模块
+
+```javascript
+---app
+	---index.js
+const KoaStatic = require('koa-static');
+const path = require('path')
+//处理静态文件
+app.use(KoaStatic(path.join(__dirname, `../public`)));
+```
 

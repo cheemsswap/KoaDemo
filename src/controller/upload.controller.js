@@ -13,7 +13,7 @@ class UploadController {
             //生成文件名 并设置保存地址
             const newFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + PATH.extname(name)
             const day = moment().format("YYYY_MM_DD")
-            await mkdirp.sync(`./src/public/uploads/${day}`)
+            await mkdirp.sync(PATH.join(__dirname, `../public/uploads/${day}`))
             const uploadPath = PATH.join(__dirname, `../public/uploads/${day}/${newFilename}`)
             //创建可写流
             const upStream = fs.createWriteStream(uploadPath);
@@ -24,7 +24,7 @@ class UploadController {
                 code: 200,
                 message: "保存成功",
                 result: {
-                    url: `/public/uploads/${day}/${newFilename}`
+                    url: `/uploads/${day}/${newFilename}`
                 }
             }
         } catch (error) {

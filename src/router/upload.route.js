@@ -21,7 +21,7 @@ const { uploadpic } = require('../controller/upload.controller')
  *         type: string
  *         default : 'Bearer '
  *       - name: file
- *         description: 图片上传 默认2M大小
+ *         description: 图片上传
  *         in: formData 
  *         required: true
  *         type: file
