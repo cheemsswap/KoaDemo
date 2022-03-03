@@ -36,7 +36,7 @@ UPLOAD_MAXSIZE=104857600
 http://127.0.0.1:3000/swagger
 ```
 
-![]()
+![](https://github.com/cheemsswap/KoaDemo/releases/download/koa/swagger.jpg)
 
 # 文件目录结构：
 
@@ -571,7 +571,7 @@ UserRouter.post('/register', regitser)
 
 ## 14、增加参数验证器 自定义中间件
 
-![时序图1]()
+![时序图1](https://github.com/cheemsswap/KoaDemo/releases/download/koa/1.png)
 
 ```javascript
 ---src
